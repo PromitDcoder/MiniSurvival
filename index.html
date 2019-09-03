@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Bouncing Balls</title>
+    </head>
+    <body>
+        <canvas id= 'ctx' width= "500" height="500" style="border: 1px solid black"></canvas>
+        <script>
+            var ctx = document.getElementById('ctx').getContext('2d');
+            //Modify Settings
+            ctx.font = "30px Arial";
+            
+            var Width = 500;
+            var Height = 500;
+            var timeWhenGameStarted = Date.now(); //return the time in ms
+            var frameCount = 0; //Frame Count
+            var score = 0; //Score
+            var gameOverFlag = 0 //Game over flag
+
+            //Player
+            var player = {
+                spdX: 10,
+                spdY: -5,
+                color: 'red',
+                hp: 10,
+                radius: 12
+            };
+            
+            //Enemy
+            var enemyList = {};
+           
+            Enemy = function (id, x, y, spdX, spdY){
+                        var enemy = {
+                            id: id,
+                            x: x,
+                            y: y,
+                            spdX: spdX,
+                            spdY: spdY,
+                            color: "blue",
+                            radius: 8
+                        };
+                        enemyList[id] = enemy;
+                    }
+                    
+            //Enemy Generating Function
+            randomlyGenerateEnemy = function () {
+                var id = Math.random();
+                var x = 9 + Math.random()*(Width-16);
+                var y = 9 + Math.random()*(Height-16);
+                var spdX = 5 + Math.random()*5;
+                var spdY = 5 + Math.random()*5;
+                Enemy(id, x, y, spdX, spdY);
+            }
+
+            //Mouse over point
+            document.onmousemove = function(mouse) {
+                                            //Placing pointer in the middle of the object
+                var mouseX = mouse.clientX - document.getElementById('ctx').getBoundingClientRect().left;
+                var mouseY = mouse.clientY - document.getElementById('ctx').getBoundingClientRect().top;
+
+                if(mouseX < player.radius){
+                    mouseX = player.radius;
+                }
+                if(mouseX > Width - player.radius){
+                    mouseX = Width - player.radius;
+                }
+                if(mouseY < player.radius){
+                    mouseY = player.radius;
+                }
+                if(mouseY > Height - player.radius){
+                    mouseY = Height - player.radius;
+                }
+
+                player.x = mouseX;
+                player.y = mouseY;
+            }
+
+            //Start new game function
+            startNewGame = function(){
+                player.hp = 10;
+                timeWhenGameStarted = Date.now();
+                frameCount = 0;
+                score = 0;
+                gameOverFlag = 0;
+                enemyList = {};
+                randomlyGenerateEnemy();
+                randomlyGenerateEnemy();
+                randomlyGenerateEnemy();
+            }
+
+            //Starting game for first time
+            startNewGame();
+
+            //Distance between entities
+            getDistanceBetweenEntity = function (entity1, entity2) {
+                var vx = entity1.x - entity2.x;
+                var vy = entity1.y - entity2.y;
+                return Math.sqrt(vx*vx + vy*vy);
+            }
+
+            //Testing collision between entities
+            testCollisionEntity = function (entity1, entity2){
+                var circ1 = {
+                    x : entity1.x - entity1.radius,
+                    y : entity1.y - entity1.radius,
+                    radius : entity1.radius
+                };
+
+                var circ2 = {
+                    x : entity2.x - entity2.radius,
+                    y : entity2.y - entity2.radius,
+                    radius : entity2.radius
+                }
+                return testCollisionOfCircle(circ1, circ2);
+
+            }
+            
+            //Update entity position
+            updateEntityPosition = function(obj){
+                
+                if(obj.x<obj.radius || obj.x>Width-obj.radius)
+                    {
+                        obj.spdX = -obj.spdX;
+                    }
+                if(obj.y<obj.radius || obj.y>Height-obj.radius)
+                    {
+                        obj.spdY = -obj.spdY;
+                    }
+                obj.x += obj.spdX;
+                obj.y += obj.spdY;
+            }
+
+            testCollisionOfCircle = function (entity1, entity2){
+                return entity1.x <= entity2.x + entity2.radius
+                    && entity2.x <= entity1.x + entity1.radius
+                    && entity1.y <= entity2.y + entity2.radius
+                    && entity2.y <= entity1.y + entity1.radius
+            }
+
+            //Draw Entity
+            drawEntity = function(obj){
+                ctx.beginPath();
+                ctx.fillStyle = obj.color;
+                if(obj === player){
+                    ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI*2);
+                }
+                else{ //if(obj === enemy){
+                    ctx.arc(obj.x, obj.y, obj.radius, 0, Math.PI*2);
+                }
+                ctx.fill();
+                ctx.closePath();
+                ctx.fillStyle = "black";
+            } 
+
+            //updating entity in frame
+            updateEntity = function (obj) {
+                updateEntityPosition(obj);
+                drawEntity(obj); 
+                
+
+            }
+            
+            //Updating Frame
+            update = function (){
+                
+                ctx.clearRect(0, 0, Width, Height);
+                frameCount++;
+                score++;
+
+                if(frameCount % 100 === 0){//every 4 seconds
+                    randomlyGenerateEnemy();
+                }
+
+                drawEntity(player); //updating player
+                ctx.fillText(player.hp + " HP", 0, 30); //updating health points
+                ctx.fillText("Score: " + score, 200, 30); //updating score
+
+                for(var enemy in enemyList){
+                    updateEntity(enemyList[enemy]); //updating enemy
+                    
+                    //Colliding
+                    var isColliding = testCollisionEntity(player, enemyList[enemy]);
+                    if(isColliding){
+                        //Player Colliding
+                        player.hp = player.hp - 1;
+                        console.log('Player Colliding with ' + enemyList[enemy].id);
+                        
+                    }
+                }
+
+                if(player.hp <= 0){
+                    
+                    alert("Your Score : " + score);
+                    var timeSurvived = Date.now() - timeWhenGameStarted;                       
+                    console.log( "GAME OVER!!!! You survived for " + timeSurvived + "ms.");
+                    startNewGame();
+                    
+                            
+                }               
+            }
+
+            //Animation
+            setInterval(update, 40);
+            
+            
+        </script>
+    </body>
+</html>
